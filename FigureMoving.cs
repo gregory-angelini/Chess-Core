@@ -29,5 +29,15 @@ namespace Chess
             this.to = new Square(move.Substring(3, 2));
             this.promotion = (move.Length == 6) ? (Figure)move[5] : Figure.none;
         }
+
+        public int DeltaX { get { return to.x - from.x; } }
+        public int DeltaY { get { return to.y - from.y; } }
+
+        public int AbsDeltaX { get { return Math.Abs(DeltaX); } }
+        public int AbsDeltaY { get { return Math.Abs(DeltaY); } }
+
+        public int SignDeltaX { get { return Math.Sign(DeltaX); } }
+        public int SignDeltaY { get { return Math.Sign(DeltaY); } }
+
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Chess
 {
@@ -15,18 +16,21 @@ namespace Chess
         // note: the number of the full move. It starts at 1, and is incremented after Black's move
         public string fen { get; private set; }// current game state in fen notation
         Board board;
-
+        Moves moves;
+        List<FigureMoving> allMoves;
 
         public Chess(string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")// start of game
         {
             this.fen = fen;
             board = new Board(fen);
+            moves = new Moves(board);
         }
         
         Chess(Board board)
         {
             this.board = board;
             fen = board.fen;
+            moves = new Moves(board);
         }
 
         // moves a figure
@@ -34,6 +38,12 @@ namespace Chess
         public Chess Move(string move)
         {
             FigureMoving fm = new FigureMoving(move);
+           
+            if(!moves.CanMove(fm))
+            {
+                return this;
+            }
+
             Board nextBoard = board.Move(fm);
             Chess nextChess = new Chess(nextBoard);
             return nextChess;
@@ -44,6 +54,11 @@ namespace Chess
             Square square = new Square(x, y);
             Figure figure = board.FigureAt(square);
             return figure == Figure.none ? '.' : (char)figure;
+        }
+
+        void FindAllMoves()
+        {
+
         }
     }
 }

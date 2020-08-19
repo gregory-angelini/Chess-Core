@@ -22,4 +22,19 @@ namespace Chess
         blackKnight = 'n',
         blackPawn = 'p'
     }
+
+    static class FigureMethods
+    {
+        public static Color GetColor(this Figure figure)
+        {
+            if (figure == Figure.none)
+                return Color.none;
+
+            if(Char.IsUpper((char)figure))
+            {
+                return Color.white;
+            }
+            return Color.black;
+        }
+    }
 }

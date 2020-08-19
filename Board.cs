@@ -31,10 +31,6 @@ namespace Chess
             InitFigures(parts[0]);
             moveColor = parts[1] == "b" ? Color.black : Color.white;
             moveNumber = int.Parse(parts[5]);
-
-            // test 
-            //Insert(new Square("a1"), Figure.whiteKing);
-            //Insert(new Square("h8"), Figure.blackKing);
         }
 
         void InitFigures(string data)
@@ -123,7 +119,7 @@ namespace Chess
             if (moveColor == Color.black)
                 nextBoard.moveNumber++;
 
-            nextBoard.moveColor.FlipColor();// end turn
+            nextBoard.moveColor = moveColor.FlipColor();// end turn
             nextBoard.GenerateFen();//apply the turn to current board state
             return nextBoard;
         }
