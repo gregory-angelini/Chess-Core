@@ -26,6 +26,7 @@ namespace Chess
         Chess(Board board)
         {
             this.board = board;
+            fen = board.fen;
         }
 
         // moves a figure
