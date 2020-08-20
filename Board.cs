@@ -110,6 +110,19 @@ namespace Chess
             return sb.ToString();
         }
 
+  
+        public IEnumerable<FigureOnSquare> YieldFigures()
+        {
+            foreach (Square square in Square.YieldSquares())
+            {
+                Figure figure = FigureAt(square);
+                if (figure.GetColor() == moveColor)
+                {
+                    yield return new FigureOnSquare(figure, square);
+                }
+            }
+        }
+
         public Board Move(FigureMoving fm)
         {
             Board nextBoard = new Board(fen);

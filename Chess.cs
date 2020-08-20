@@ -58,7 +58,29 @@ namespace Chess
 
         void FindAllMoves()
         {
+            allMoves = new List<FigureMoving>();
 
+            foreach(FigureOnSquare fs in board.YieldFigures())
+                foreach(Square to in Square.YieldSquares())
+                {
+                    FigureMoving fm = new FigureMoving(fs, to);
+                    if(moves.CanMove(fm))
+                    {
+                        allMoves.Add(fm);
+                    }
+                }
+        }
+
+        public List<string> GetAllMoves()
+        {
+            FindAllMoves();
+
+            List<string> list = new List<string>();
+
+            foreach (FigureMoving fm in allMoves)
+                list.Add(fm.ToString());
+                
+            return list;
         }
     }
 }

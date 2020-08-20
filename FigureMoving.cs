@@ -39,5 +39,14 @@ namespace Chess
         public int SignDeltaX { get { return Math.Sign(DeltaX); } }
         public int SignDeltaY { get { return Math.Sign(DeltaY); } }
 
+        public override string ToString()
+        {
+            string text = (char)figure + from.Name + to.Name;
+
+            if (promotion != Figure.none)
+                text += (char)promotion;
+
+            return text;
+        }
     }
 }
