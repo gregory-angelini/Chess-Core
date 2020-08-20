@@ -77,36 +77,36 @@ namespace Chess
             int stepY = fm.figure.GetColor() == Color.white ? 1 : -1;// pawn can move up or down depends on color
 
             return CanPawnGo(stepY) ||
-                   CanPawnJump(stepY) ||
-                   CanPawnAttack(stepY);
+                   CanPawnJump(stepY);// ||
+                   //CanPawnAttack(stepY);
 
         }
 
         bool CanPawnAttack(int stepY)
         {
-            if (board.FigureAt(fm.to) != Figure.none &&
-               fm.AbsDeltaX == 1 &&
-               fm.DeltaY == stepY)
+            if ((board.FigureAt(fm.to) != Figure.none) &&
+               (fm.AbsDeltaX == 1) &&
+               (fm.DeltaY == stepY))
                 return true;
             return false;
         }
 
         bool CanPawnJump(int stepY)
         {
-            if (board.FigureAt(fm.to) == Figure.none &&
-                fm.DeltaX == 0 &&
-                fm.DeltaY == 2 * stepY &&// control jump distance 
-                fm.from.y == 1 || fm.from.y == 6 && // allow jump only from start position
-                board.FigureAt(new Square(fm.from.x, fm.from.y + stepY)) == Figure.none)// disallow jumping over figures
+            if ((board.FigureAt(fm.to) == Figure.none) &&
+                (fm.DeltaX == 0) &&
+                (fm.DeltaY == 2 * stepY) &&// control jump distance 
+                (fm.from.y == 1 || fm.from.y == 6) && // allow jump only from start position
+                (board.FigureAt(new Square(fm.from.x, fm.from.y + stepY)) == Figure.none))// disallow jumping over figures
                 return true;
             return false;
         }
 
         bool CanPawnGo(int stepY)
         {
-            if (board.FigureAt(fm.to) == Figure.none &&
-                fm.DeltaX == 0 &&
-                fm.DeltaY == stepY)
+            if ((board.FigureAt(fm.to) == Figure.none) &&
+                (fm.DeltaX == 0) &&
+                (fm.DeltaY == stepY))
                 return true;
             return false;
         }

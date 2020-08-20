@@ -7,6 +7,7 @@ namespace Chess
 {
     struct Square
     {
+        public static Square none = new Square(-1, -1);
         public int x { get; private set; }
         public int y { get; private set; }
 
@@ -31,8 +32,7 @@ namespace Chess
             }
             else
             {
-                x = -1;
-                y = -1;
+                this = none;
             }
         }
 

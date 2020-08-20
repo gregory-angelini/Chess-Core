@@ -19,7 +19,7 @@ namespace Chess
         Moves moves;
         List<FigureMoving> allMoves;
 
-        public Chess(string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")// start of game
+        public Chess(string fen = "rnbqkbnr/p111111p/8/8/8/8/P111111P/RNBQKBNR w KQkq - 0 1")// start of game
         {
             this.fen = fen;
             board = new Board(fen);
@@ -38,11 +38,11 @@ namespace Chess
         public Chess Move(string move)
         {
             FigureMoving fm = new FigureMoving(move);
-           
+            
             if(!moves.CanMove(fm))
-            {
                 return this;
-            }
+            if (board.IsCheckAfterMove(fm))
+                return this;
 
             Board nextBoard = board.Move(fm);
             Chess nextChess = new Chess(nextBoard);
@@ -66,7 +66,8 @@ namespace Chess
                     FigureMoving fm = new FigureMoving(fs, to);
                     if(moves.CanMove(fm))
                     {
-                        allMoves.Add(fm);
+                        if(!board.IsCheckAfterMove(fm))
+                            allMoves.Add(fm);
                     }
                 }
         }
@@ -81,6 +82,11 @@ namespace Chess
                 list.Add(fm.ToString());
                 
             return list;
+        }
+
+        public bool IsCheck()
+        {
+            return board.IsCheck();
         }
     }
 }

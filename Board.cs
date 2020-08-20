@@ -136,5 +136,49 @@ namespace Chess
             nextBoard.GenerateFen();//apply the turn to current board state
             return nextBoard;
         }
+
+        bool IsOurKingUnderAttack()
+        {
+            Square enemyKing = FindEnemyKing();
+            Moves moves = new Moves(this);
+            
+            foreach(FigureOnSquare fs in YieldFigures())
+            {
+                FigureMoving fm = new FigureMoving(fs, enemyKing);
+                if(moves.CanMove(fm))// if an enemy figure can attack our king
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        Square FindEnemyKing()
+        {
+            Figure enemyKing = moveColor == Color.black ? Figure.whiteKing : Figure.blackKing;
+            
+            foreach(Square square in Square.YieldSquares())
+            {
+                if(FigureAt(square) == enemyKing)
+                {
+                    return square;
+                }
+            }
+            return Square.none;
+        }
+
+        public bool IsCheck()
+        {
+            Board after = new Board(fen);
+            after.moveColor = moveColor.FlipColor();
+            // now we can work with enemy figures
+            return after.IsOurKingUnderAttack();
+        }
+
+        public bool IsCheckAfterMove(FigureMoving fm)
+        {
+            Board after = Move(fm);
+            return after.IsOurKingUnderAttack();
+        }
     }
 }
