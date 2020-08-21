@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Text;
 
-namespace Chess
+namespace ChessCore
 {
     class Board
     {

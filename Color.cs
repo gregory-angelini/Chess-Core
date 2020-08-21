@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Chess
+namespace ChessCore
 {
-    enum Color
+    public enum Color
     {
         none,
         white,

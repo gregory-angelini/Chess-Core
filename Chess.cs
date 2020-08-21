@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Chess
+namespace ChessCore
 {
     public class Chess
     {
@@ -19,7 +19,7 @@ namespace Chess
         Moves moves;
         List<FigureMoving> allMoves;
 
-        public Chess(string fen = "rnbqkbnr/p111111p/8/8/8/8/P111111P/RNBQKBNR w KQkq - 0 1")// start of game
+        public Chess(string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")// start of game
         {
             this.fen = fen;
             board = new Board(fen);

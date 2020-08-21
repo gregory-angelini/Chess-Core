@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Chess
+namespace ChessCore
 {
-    enum Figure
+    public enum Figure
     {
         none,
 
