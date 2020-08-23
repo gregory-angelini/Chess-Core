@@ -18,8 +18,10 @@ namespace ChessCore
         Board board;
         Moves moves;
         List<FigureMoving> allMoves;
+        bool curPlayerInCheck = false;
+        bool curPlayerInCheckmate = false;
 
-        public Chess(string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")// start of game
+        public Chess(string fen = "r2qk2r/8/8/8/8/8/8/R2QK2R w KQkq - 0 1")// start of game
         {
             this.fen = fen;
             board = new Board(fen);
@@ -41,12 +43,39 @@ namespace ChessCore
             
             if(!moves.CanMove(fm))
                 return this;
-            if (board.IsCheckAfterMove(fm))
+            if (board.IsOurKingInCheckAfterMove(fm))
                 return this;
 
             Board nextBoard = board.Move(fm);
             Chess nextChess = new Chess(nextBoard);
+            nextChess.UpdateOurKingStatus();
             return nextChess;
+        }
+
+        void UpdateOurKingStatus()
+        {
+            if (board.IsOurKingInCheck())
+            {
+                curPlayerInCheck = true;
+                Moves moves = new Moves(board);
+
+                foreach (FigureOnSquare fs in board.YieldFigures())
+                {
+                    foreach (Square to in Square.YieldSquares())
+                    {
+                        FigureMoving fm = new FigureMoving(fs, to);
+                        if (moves.CanMove(fm))
+                        {
+                            if (!board.IsOurKingInCheckAfterMove(fm))
+                            {
+                                // we have a move to avoid checkmate
+                                return;
+                            }
+                        }
+                    }
+                }
+                curPlayerInCheckmate = true;
+            }
         }
 
         public char FigureAt(int x, int y)
@@ -66,7 +95,7 @@ namespace ChessCore
                     FigureMoving fm = new FigureMoving(fs, to);
                     if(moves.CanMove(fm))
                     {
-                        if(!board.IsCheckAfterMove(fm))
+                        if(!board.IsOurKingInCheckAfterMove(fm))
                             allMoves.Add(fm);
                     }
                 }
@@ -84,9 +113,61 @@ namespace ChessCore
             return list;
         }
 
-        public bool IsCheck()
+        public IEnumerable<string> YieldAllMoves()
         {
-            return board.IsCheck();
+            FindAllMoves();
+
+            foreach (FigureMoving fm in allMoves)
+                yield return fm.ToString();
+        }
+
+        public bool CanMove(Figure figure, int figureX, int figureY, int targetX, int targetY)
+        {
+            Square from = new Square(figureX, figureY);
+            Square to = new Square(targetX, targetY);
+
+            FigureOnSquare fs = new FigureOnSquare(figure, from);
+            FigureMoving fm = new FigureMoving(fs, to);
+           
+            if (moves.CanMove(fm))
+            {
+                if (!board.IsOurKingInCheckAfterMove(fm))
+                    return true;
+            }
+            return false;
+        }  
+
+        public bool IsOurKingInCheckmate()
+        {
+            return curPlayerInCheckmate;
+        }
+
+        public bool IsOurKingInCheck()
+        {
+            return curPlayerInCheck;
+        }
+
+        public static string SquarePosToSquareName(int x, int y)
+        {
+            return Square.GetName(x, y);
+        }
+
+        public static void SquareNameToSquarePos(string name, out int x, out int y)
+        {
+            Square square = new Square(name);
+            x = square.x;
+            y = square.y;
+        }
+
+        // who has a turn?
+        public Color GetCurrentPlayerColor()
+        {
+            return board.currentPlayerColor;
+        }
+
+        public static Color GetFigureColor(Figure figure)
+        {
+            return figure.GetColor();
         }
     }
 }

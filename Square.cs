@@ -21,14 +21,14 @@ namespace ChessCore
         // x: a, b, c, d, e, f, g, h
         // y: 1, 2, 3, 4, 5, 6, 7, 8
         // example: a4
-        public Square(string e2)
+        public Square(string name)
         {
-            if(e2.Length == 2 &&
-               e2[0] >= 'a' && e2[0] <= 'h' &&
-               e2[1] >= '1' && e2[1] <= '8')
+            if(name.Length == 2 &&
+               name[0] >= 'a' && name[0] <= 'h' &&
+               name[1] >= '1' && name[1] <= '8')
             {
-                x = e2[0] - 'a';
-                y = e2[1] - '1';
+                x = name[0] - 'a';
+                y = name[1] - '1';
             }
             else
             {
@@ -59,12 +59,9 @@ namespace ChessCore
                     yield return new Square(x, y);
         }
 
-        public string Name 
+        public static string GetName(int x, int y)
         { 
-            get 
-            {
-                return ((char)('a' + x)).ToString() + (y + 1).ToString();
-            } 
+            return ((char)('a' + x)).ToString() + (y + 1).ToString();
         }
     }
 }

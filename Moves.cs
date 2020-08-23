@@ -7,7 +7,7 @@ namespace ChessCore
     class Moves
     {
         FigureMoving fm;
-        Board board;
+        Board board; 
 
         public Moves(Board board)
         {
@@ -27,15 +27,96 @@ namespace ChessCore
         {
             return fm.from.OnBoard() &&
                    board.FigureAt(new Square(fm.from.x, fm.from.y)) == fm.figure &&
-                   fm.figure.GetColor() == board.moveColor;
+                   fm.figure.GetColor() == board.currentPlayerColor;// we can only move our figures 
         }
 
         bool CanMoveTo()
         {
             return fm.from.OnBoard() &&
                    fm.from != fm.to && 
-                   board.FigureAt(fm.to).GetColor() != board.moveColor;//covers a case when we're going on empty square
+                   board.FigureAt(fm.to).GetColor() != board.currentPlayerColor;//covers a case when we're going on empty square
         }
+
+        bool CanKingCastlingKingside()
+        {
+            /* kingside
+                white case
+                k   .   .   r
+                e1  f1  g1  h1
+
+                black case
+                k   .   .   r
+                e8  f8  g8  h8 */
+
+            /* queenside
+                white case
+                r   .   .   .   k
+                a1  b1  c1  d1  e1
+
+                black case
+                r   .   .   .   k
+                a8  b8  c8  d8  e8 */
+
+            // 1. Both the king and the rook may never have moved during the game
+            // 2. There are no pieces between the king and the rook
+            // 3. The king is not in check
+            // 4. The king does not cross over a square that is attacked by the opponent's pieces
+            // 5. The castling move cannot end with the king in check
+            if (!board.IsOurKingInCheck())   
+            { 
+                return IsCastlingAllowed();
+            }
+            return false;
+        }
+
+        bool IsCastlingAllowed()
+        {
+            bool isKingsideCastlingAllowed = board.currentPlayerColor == Color.white ? board.wKingsideCastling : board.bKingsideCastling;
+            bool isQueensideCastlingAllowed = board.currentPlayerColor == Color.white ? board.wQueensideCastling : board.bQueensideCastling;
+
+            if (fm.AbsDeltaX == 2 && fm.AbsDeltaY == 0)
+            {
+                if (fm.SignDeltaX == 1 && // short; move right
+                    isKingsideCastlingAllowed)
+                {
+                    if (IsWayIsSafe(fm.SignDeltaX))
+                    {
+                        fm.castling = board.currentPlayerColor == Color.white ? 'K' : 'k';
+                        return true;
+                    }
+                }
+                else if (fm.SignDeltaX == -1 &&// long; move left
+                         isQueensideCastlingAllowed)
+                {
+                    if (IsWayIsSafe(fm.SignDeltaX))
+                    {
+                        fm.castling = board.currentPlayerColor == Color.white ? 'Q' : 'q';
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        bool IsWayIsSafe(int offset)
+        {
+            Square nearSquare = new Square(fm.from.x + offset, fm.from.y);
+            Square farSquare = new Square(fm.from.x + (offset * 2), fm.from.y);
+
+            if (board.FigureAt(nearSquare) == Figure.none &&
+                board.FigureAt(farSquare) == Figure.none)
+             {
+                FigureMoving fm1 = new FigureMoving(new FigureOnSquare(fm.figure, fm.from), nearSquare);
+                FigureMoving fm2 = new FigureMoving(new FigureOnSquare(fm.figure, fm.from), farSquare);
+
+                if (!board.IsOurKingInCheckAfterMove(fm1) &&
+                    !board.IsOurKingInCheckAfterMove(fm2))
+                {
+                    return true;
+                }
+            }
+            return false;
+        } 
 
         bool CanFigureMove()
         {
@@ -77,8 +158,8 @@ namespace ChessCore
             int stepY = fm.figure.GetColor() == Color.white ? 1 : -1;// pawn can move up or down depends on color
 
             return CanPawnGo(stepY) ||
-                   CanPawnJump(stepY);// ||
-                   //CanPawnAttack(stepY);
+                   CanPawnJump(stepY) ||
+                   CanPawnAttack(stepY);
 
         }
 
@@ -136,8 +217,8 @@ namespace ChessCore
         // The king can move to any adjacent square
         bool CanKingMove()
         {
-            if(fm.AbsDeltaX <= 1 && fm.AbsDeltaY <= 1) return true;
-            return false;
+            if (fm.AbsDeltaX <= 1 && fm.AbsDeltaY <= 1) return true;
+            return CanKingCastlingKingside();
         }
 
         // The Queen moves in a straight line - either vertically, horizontally or diagonally

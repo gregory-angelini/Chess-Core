@@ -9,8 +9,14 @@ namespace ChessCore
     {
         public string fen { get; private set; }
         Figure[,] figures;// array of all figures
-        public Color moveColor { get; private set; }// who has a turn?
+        public Color currentPlayerColor { get; private set; }// who has a turn?
         public int moveNumber { get; private set; }// increases after black had a first turn
+
+        public bool wKingsideCastling { get; set; } = false;
+        public bool wQueensideCastling { get; set; } = false;
+        public bool bKingsideCastling { get; set; } = false;
+        public bool bQueensideCastling { get; set; } = false;
+
 
         public Board(string fen)
         {
@@ -21,16 +27,44 @@ namespace ChessCore
 
         void Init()
         {
-            /*                                               0   0 0   - ignore
+            /*                                                   0 0   - ignore
              "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-              1                                           1          1 - parse
+              1                                           1  1       1 - parse
              we will ignore next parts: castle kingside and castle queenside information, passant target square, number of halfmoves */
             string[] parts = fen.Split();// split by ' '
             if (parts.Length != 6) return;
 
             InitFigures(parts[0]);
-            moveColor = parts[1] == "b" ? Color.black : Color.white;
+            currentPlayerColor = parts[1] == "b" ? Color.black : Color.white;
+
+            ParseKingCastling(parts[2]);
+
             moveNumber = int.Parse(parts[5]);
+        }
+
+        void ParseKingCastling(string text)
+        {
+            foreach (char it in text)
+            {
+                switch (it)
+                {
+                    case 'K':
+                        wKingsideCastling = true;
+                        break;
+
+                    case 'Q':
+                        wQueensideCastling = true;
+                        break;
+
+                    case 'k':
+                        bKingsideCastling = true;
+                        break;
+
+                    case 'q':
+                        bQueensideCastling = true;
+                        break;
+                }
+            }
         }
 
         void InitFigures(string data)
@@ -82,8 +116,12 @@ namespace ChessCore
         void GenerateFen()
         {
             fen = FenFigures() + " " +
-                  (moveColor == Color.white ? "w" : "b") + " " +
-                  "- - 0 " + // ignored information
+                  (currentPlayerColor == Color.white ? "w" : "b") + " " +
+                  (wKingsideCastling ? "K" : "") +
+                  (wQueensideCastling ? "Q" : "") +
+                  (bKingsideCastling ? "k" : "") +
+                  (bQueensideCastling ? "q" : "") +
+                  " - 0 " + // ignored information
                   moveNumber.ToString();
         }
 
@@ -116,7 +154,7 @@ namespace ChessCore
             foreach (Square square in Square.YieldSquares())
             {
                 Figure figure = FigureAt(square);
-                if (figure.GetColor() == moveColor)
+                if (figure.GetColor() == currentPlayerColor)
                 {
                     yield return new FigureOnSquare(figure, square);
                 }
@@ -128,26 +166,121 @@ namespace ChessCore
             Board nextBoard = new Board(fen);
             nextBoard.InsertFigure(fm.from, Figure.none);
             nextBoard.InsertFigure(fm.to, fm.promotion == Figure.none ? fm.figure : fm.promotion);
-            
-            if (moveColor == Color.black)
+
+            nextBoard.MakeCastling(nextBoard, fm);
+
+            if (currentPlayerColor == Color.black)
                 nextBoard.moveNumber++;
 
-            nextBoard.moveColor = moveColor.FlipColor();// end turn
+            nextBoard.UpdateCastling(fm);
+
+            nextBoard.currentPlayerColor = currentPlayerColor.FlipPlayer();// end turn
+            
             nextBoard.GenerateFen();//apply the turn to current board state
             return nextBoard;
         }
 
-        bool IsOurKingUnderAttack()
+        void MakeCastling(Board board, FigureMoving fm)
         {
+            if (fm.castling == 'K' || fm.castling == 'k')
+            {
+                board.InsertFigure(new Square(7, fm.from.y), Figure.none);
+                board.InsertFigure(new Square(fm.to.x + (fm.SignDeltaX * -1), fm.to.y), fm.castling == 'K' ? Figure.whiteRook : Figure.blackRook);
+            }
+            else if (fm.castling == 'Q' || fm.castling == 'q')
+            {
+                board.InsertFigure(new Square(0, fm.from.y), Figure.none);
+                board.InsertFigure(new Square(fm.to.x + (fm.SignDeltaX * -1), fm.to.y), fm.castling == 'Q' ? Figure.whiteRook : Figure.blackRook);
+            }
+        }
+
+        void UpdateCastling(FigureMoving fm)
+        {
+            // we move our king or rook
+            Figure king = currentPlayerColor == Color.white ? Figure.whiteKing : Figure.blackKing;
+            Figure rook = currentPlayerColor == Color.white ? Figure.whiteRook : Figure.blackRook;
+
+            if (fm.figure == king)
+            {
+                DisableQueensideCastling(currentPlayerColor);
+                DisableKingsideCastling(currentPlayerColor);
+            }
+            else if(fm.figure == rook)
+            {
+                if(fm.from.x == 0)
+                {
+                    DisableQueensideCastling(currentPlayerColor);
+                } 
+                else if(fm.from.x == 7)
+                {
+                    DisableKingsideCastling(currentPlayerColor);
+                }
+            }
+
+            // we kill an enemy rook
+            if(FigureAt(fm.to) == Figure.blackRook)// currentPlayerColor == Color.white
+            {
+                if (fm.to.x == 0 && fm.to.y == 7)
+                {
+                    DisableQueensideCastling(Color.black);
+                }
+                else if (fm.to.x == 7 && fm.to.y == 7)
+                {
+                    DisableKingsideCastling(Color.black);
+                }
+            }
+            else if(FigureAt(fm.to) == Figure.whiteRook)// currentPlayerColor == Color.black
+            {
+                if (fm.to.x == 0 && fm.to.y == 0)
+                {
+                    DisableQueensideCastling(Color.white);
+                }
+                else if (fm.to.x == 7 && fm.to.y == 0)
+                {
+                    DisableKingsideCastling(Color.white);
+                }
+            }
+        }
+
+        void DisableKingsideCastling(Color color)
+        {
+            if (color == Color.white)
+            {
+                wKingsideCastling = false;
+            }
+            else// if (color == Color.black)
+            {
+                bKingsideCastling = false;
+            }
+        }
+
+        void DisableQueensideCastling(Color color)
+        {
+            if (color == Color.white)
+            {
+                wQueensideCastling = false;
+            }
+            else//if (color == Color.black)
+            {
+                bQueensideCastling = false;
+            }
+        }
+
+        bool IsEnemyKingUnderAttack()
+        {
+            Figure king = currentPlayerColor == Color.white ? Figure.whiteKing : Figure.blackKing;
             Square enemyKing = FindEnemyKing();
-            Moves moves = new Moves(this);
+            Moves moves = new Moves(this); 
             
             foreach(FigureOnSquare fs in YieldFigures())
             {
-                FigureMoving fm = new FigureMoving(fs, enemyKing);
-                if(moves.CanMove(fm))// if an enemy figure can attack our king
+                if (fs.figure != king)// kings cannot attack each other
                 {
-                    return true;
+                    FigureMoving fm = new FigureMoving(fs, enemyKing);
+                    if (moves.CanMove(fm))// if any of our figure can attack enemy king
+                    {
+                        return true;
+                    }
                 }
             }
             return false;
@@ -155,7 +288,7 @@ namespace ChessCore
 
         Square FindEnemyKing()
         {
-            Figure enemyKing = moveColor == Color.black ? Figure.whiteKing : Figure.blackKing;
+            Figure enemyKing = currentPlayerColor == Color.black ? Figure.whiteKing : Figure.blackKing;
             
             foreach(Square square in Square.YieldSquares())
             {
@@ -167,18 +300,18 @@ namespace ChessCore
             return Square.none;
         }
 
-        public bool IsCheck()
+        public bool IsOurKingInCheck()
         {
             Board after = new Board(fen);
-            after.moveColor = moveColor.FlipColor();
+            after.currentPlayerColor = currentPlayerColor.FlipPlayer();
             // now we can work with enemy figures
-            return after.IsOurKingUnderAttack();
+            return after.IsEnemyKingUnderAttack();
         }
 
-        public bool IsCheckAfterMove(FigureMoving fm)
+        public bool IsOurKingInCheckAfterMove(FigureMoving fm)
         {
             Board after = Move(fm);
-            return after.IsOurKingUnderAttack();
+            return after.IsEnemyKingUnderAttack();
         }
     }
 }

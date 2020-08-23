@@ -12,7 +12,7 @@ namespace ChessCore
     }
     static class ColorMethods
     {
-        public static Color FlipColor(this Color color)
+        public static Color FlipPlayer(this Color color)
         {
             if (color == Color.black) 
                 return Color.white;
