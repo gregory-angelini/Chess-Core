@@ -21,7 +21,7 @@ namespace ChessCore
         bool curPlayerInCheck = false;
         bool curPlayerInCheckmate = false;
 
-        public Chess(string fen = "r2qk2r/8/8/8/8/8/8/R2QK2R w KQkq - 0 1")// start of game
+        public Chess(string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")// start of game
         {
             this.fen = fen;
             board = new Board(fen);
@@ -45,14 +45,14 @@ namespace ChessCore
                 return this;
             if (board.IsOurKingInCheckAfterMove(fm))
                 return this;
-
+            
             Board nextBoard = board.Move(fm);
             Chess nextChess = new Chess(nextBoard);
             nextChess.UpdateOurKingStatus();
             return nextChess;
         }
 
-        void UpdateOurKingStatus()
+        public void UpdateOurKingStatus()
         {
             if (board.IsOurKingInCheck())
             {
@@ -78,11 +78,10 @@ namespace ChessCore
             }
         }
 
-        public char FigureAt(int x, int y)
+        public Figure FigureAt(int x, int y)
         {
             Square square = new Square(x, y);
-            Figure figure = board.FigureAt(square);
-            return figure == Figure.none ? '.' : (char)figure;
+            return board.FigureAt(square);
         }
 
         void FindAllMoves()
