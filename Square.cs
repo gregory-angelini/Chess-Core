@@ -63,5 +63,10 @@ namespace ChessCore
         { 
             return ((char)('a' + x)).ToString() + (y + 1).ToString();
         }
+
+        public override string ToString()
+        {
+            return ((char)('a' + x)).ToString() + (y + 1).ToString();
+        }
     }
 }

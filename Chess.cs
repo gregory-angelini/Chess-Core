@@ -85,14 +85,14 @@ namespace ChessCore
         }
 
         void FindAllMoves()
-        {
+        { 
             allMoves = new List<FigureMoving>();
 
             foreach(FigureOnSquare fs in board.YieldFigures())
                 foreach(Square to in Square.YieldSquares())
-                {
+                { 
                     FigureMoving fm = new FigureMoving(fs, to);
-                    if(moves.CanMove(fm))
+                    if(moves.CanMove(fm)) 
                     {
                         if(!board.IsOurKingInCheckAfterMove(fm))
                             allMoves.Add(fm);
@@ -144,6 +144,14 @@ namespace ChessCore
         public bool IsOurKingInCheck()
         {
             return curPlayerInCheck;
+        }
+
+        public bool IsEnPassant(out int x, out int y)
+        {
+            Square midSquare = new Square(board.EnPassant);
+            x = midSquare.x;
+            y = midSquare.y;
+            return board.EnPassant.Length > 0;
         }
 
         public static string SquarePosToSquareName(int x, int y)

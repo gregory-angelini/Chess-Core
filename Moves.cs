@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace ChessCore
@@ -160,7 +161,6 @@ namespace ChessCore
             return CanPawnGo(stepY) ||
                    CanPawnJump(stepY) ||
                    CanPawnAttack(stepY);
-
         }
 
         bool CanPawnAttack(int stepY)
@@ -169,6 +169,26 @@ namespace ChessCore
                (fm.AbsDeltaX == 1) &&
                (fm.DeltaY == stepY))
                 return true;
+            return CanEnPassant(stepY);
+        }
+
+        bool CanEnPassant(int stepY)
+        {
+            /* 1. A pawn must move two squares from its initial position in a single move
+             * 2. An opposing pawn must be attacking the square the first pawn moved over
+             * 3. The first pawn can be captured as if it moved only one square
+             * 4. The capture can only be made at the opponent's next move. If the capture is not made, the first pawn is safe from en passant capture for the remainder of the game */
+             
+            if (board.EnPassant.Length == 2)
+            {
+                Square midSquare = new Square(board.EnPassant);
+            
+                if(midSquare == fm.to &&
+                  (board.FigureAt(fm.to) == Figure.none) &&
+                  (fm.AbsDeltaX == 1) &&
+                  (fm.DeltaY == stepY))
+                    return true;
+            }
             return false;
         }
 
@@ -202,8 +222,10 @@ namespace ChessCore
         // The kNight is the only piece on the board that may jump over other pieces. The knight moves two squares horizontally or vertically and then one more square at a right-angle
         bool CanKnightMove()
         {
-            if (fm.AbsDeltaX == 1 && fm.AbsDeltaY == 2) return true;
-            else if (fm.AbsDeltaX == 2 && fm.AbsDeltaY == 1) return true;
+            if (fm.AbsDeltaX == 1 && fm.AbsDeltaY == 2) 
+                return true;
+            else if (fm.AbsDeltaX == 2 && fm.AbsDeltaY == 1) 
+                return true;
             return false;
         }
 
@@ -217,7 +239,8 @@ namespace ChessCore
         // The king can move to any adjacent square
         bool CanKingMove()
         {
-            if (fm.AbsDeltaX <= 1 && fm.AbsDeltaY <= 1) return true;
+            if (fm.AbsDeltaX <= 1 && fm.AbsDeltaY <= 1) 
+                return true;
             return CanKingCastlingKingside();
         }
 
