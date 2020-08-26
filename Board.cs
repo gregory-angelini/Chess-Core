@@ -182,7 +182,7 @@ namespace ChessCore
             if (currentPlayerColor == Color.black)
                 nextBoard.moveNumber++;
 
-            nextBoard.EnPassant = nextBoard.UpdateEnPassant(fm);
+            nextBoard.UpdateEnPassant(fm);
             nextBoard.UpdateCastlingAfterMove(fm);
             nextBoard.UpdateCastling();
 
@@ -202,7 +202,7 @@ namespace ChessCore
             }
         }
 
-        string UpdateEnPassant(FigureMoving fm)
+        void UpdateEnPassant(FigureMoving fm)
         {
             if (fm.figure == Figure.whitePawn || fm.figure == Figure.blackPawn)
             {
@@ -210,10 +210,10 @@ namespace ChessCore
                 {
                     int y = fm.to.y - fm.SignDeltaY;
                     Square midSquare = new Square(fm.to.x, y);
-                    return midSquare.ToString();
+                    EnPassant = midSquare.ToString();
                 }
             }
-            return "-";// en passant only has power during one move
+            EnPassant = "-";// en passant only has power during one move
         }
 
         void MakeCastling(FigureMoving fm)
