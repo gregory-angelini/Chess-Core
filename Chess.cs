@@ -17,9 +17,10 @@ namespace ChessCore
         public string fen { get; private set; }// current game state in fen notation
         Board board;
         Moves moves;
-        List<FigureMoving> allMoves;
+
         bool curPlayerInCheck = false;
         bool curPlayerInCheckmate = false;
+        bool curPlayerInStalemate = false;
 
         public Chess(string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")// start of game
         {
@@ -43,39 +44,11 @@ namespace ChessCore
             
             if(!moves.CanMove(fm))
                 return this;
-            if (board.IsOurKingInCheckAfterMove(fm))
-                return this;
             
             Board nextBoard = board.Move(fm);
             Chess nextChess = new Chess(nextBoard);
-            nextChess.UpdateOurKingStatus();
+            nextChess.UpdateKingStatus();
             return nextChess;
-        }
-
-        public void UpdateOurKingStatus()
-        {
-            if (board.IsOurKingInCheck())
-            {
-                curPlayerInCheck = true;
-                Moves moves = new Moves(board);
-
-                foreach (FigureOnSquare fs in board.YieldFigures())
-                {
-                    foreach (Square to in Square.YieldSquares())
-                    {
-                        FigureMoving fm = new FigureMoving(fs, to);
-                        if (moves.CanMove(fm))
-                        {
-                            if (!board.IsOurKingInCheckAfterMove(fm))
-                            {
-                                // we have a move to avoid checkmate
-                                return;
-                            }
-                        }
-                    }
-                }
-                curPlayerInCheckmate = true;
-            }
         }
 
         public Figure FigureAt(int x, int y)
@@ -83,27 +56,10 @@ namespace ChessCore
             Square square = new Square(x, y);
             return board.FigureAt(square);
         }
-
-        void FindAllMoves()
-        { 
-            allMoves = new List<FigureMoving>();
-
-            foreach(FigureOnSquare fs in board.YieldFigures())
-                foreach(Square to in Square.YieldSquares())
-                { 
-                    FigureMoving fm = new FigureMoving(fs, to);
-                    if(moves.CanMove(fm)) 
-                    {
-                        if(!board.IsOurKingInCheckAfterMove(fm))
-                            allMoves.Add(fm);
-                    }
-                }
-        }
-
+       
         public List<string> GetAllMoves()
         {
-            FindAllMoves();
-
+            List<FigureMoving> allMoves = FindAllMoves();
             List<string> list = new List<string>();
 
             foreach (FigureMoving fm in allMoves)
@@ -114,12 +70,12 @@ namespace ChessCore
 
         public IEnumerable<string> YieldAllMoves()
         {
-            FindAllMoves();
+            List<FigureMoving> allMoves = FindAllMoves();
 
             foreach (FigureMoving fm in allMoves)
                 yield return fm.ToString();
         }
-
+         
         public bool CanMove(Figure figure, int figureX, int figureY, int targetX, int targetY)
         {
             Square from = new Square(figureX, figureY);
@@ -130,20 +86,74 @@ namespace ChessCore
            
             if (moves.CanMove(fm))
             {
-                if (!board.IsOurKingInCheckAfterMove(fm))
-                    return true;
+                return true;
             }
             return false;
-        }  
+        }
 
-        public bool IsOurKingInCheckmate()
+        void UpdateKingStatus()
+        {  
+            if (board.IsOurKingInCheck())
+            {
+                curPlayerInCheck = true;
+
+                foreach (FigureOnSquare fs in board.YieldFigures())
+                {
+                    foreach (Square to in Square.YieldSquares())
+                    {
+                        FigureMoving fm = new FigureMoving(fs, to);
+                       
+                        if (moves.CanMove(fm))
+                        {
+                            // we have a move to avoid checkmate
+                            return;
+                        }
+                    }
+                }
+                curPlayerInCheckmate = true;
+            }
+            else
+            {
+                if (FindAllMoves().Count == 0)
+                {
+                    curPlayerInStalemate = true;
+                }
+            }
+        }
+
+        List<FigureMoving> FindAllMoves()
+        {
+            List<FigureMoving> allMoves = new List<FigureMoving>();
+            FigureMoving fm;
+
+            foreach (FigureOnSquare fs in board.YieldFigures())
+            {
+                foreach (Square to in Square.YieldSquares())
+                {
+                    fm = new FigureMoving(fs, to);
+                   
+                    if (moves.CanMove(fm))
+                    {
+                        allMoves.Add(fm);
+                    }
+                }
+            }
+            return allMoves;
+        }
+
+        public bool IsCheckmate()
         {
             return curPlayerInCheckmate;
         }
 
-        public bool IsOurKingInCheck()
+        public bool IsCheck()
         {
             return curPlayerInCheck;
+        }
+
+        public bool IsStalemate()
+        {
+            return curPlayerInStalemate;
         }
 
         public bool IsEnPassant(out int x, out int y)

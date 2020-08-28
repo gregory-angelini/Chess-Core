@@ -25,10 +25,13 @@ namespace ChessCore
         // example: Pe2e4, Pe7e8Q (promotion to Queen)
         public FigureMoving(string move)
         {
-            figure = (Figure)move[0];
-            from = new Square(move.Substring(1, 2));
-            to = new Square(move.Substring(3, 2));
-            promotion = (move.Length == 6) ? (Figure)move[5] : Figure.none;
+            if (move.Length >= 5)
+            {
+                figure = (Figure)move[0];
+                from = new Square(move.Substring(1, 2));
+                to = new Square(move.Substring(3, 2));
+                promotion = (move.Length == 6) ? (Figure)move[5] : Figure.none;
+            }
         }
 
         public int DeltaX { get { return to.x - from.x; } }

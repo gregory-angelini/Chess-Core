@@ -18,10 +18,11 @@ namespace ChessCore
         public bool bKingsideCastling { get; set; } = false;
         public bool bQueensideCastling { get; set; } = false;
 
+
         public Board(string fen)
         {
             this.fen = fen;
-            this.figures = new Figure[8, 8];
+            figures = new Figure[8, 8];
             Init();
         }
 
@@ -187,7 +188,7 @@ namespace ChessCore
             nextBoard.UpdateCastling();
 
             nextBoard.currentPlayerColor = currentPlayerColor.FlipPlayer();// end turn
-            
+
             nextBoard.GenerateFen();//apply the turn to current board state
             return nextBoard;
         }
@@ -310,21 +311,18 @@ namespace ChessCore
             }
         }
 
-        bool IsEnemyKingUnderAttack()
+        public bool IsEnemyKingUnderAttack()
         {
-            Figure king = currentPlayerColor == Color.white ? Figure.whiteKing : Figure.blackKing;
             Square enemyKing = FindEnemyKing();
             Moves moves = new Moves(this); 
             
             foreach(FigureOnSquare fs in YieldFigures())
             {
-                if (fs.figure != king)// kings cannot attack each other
+                FigureMoving fm = new FigureMoving(fs, enemyKing);
+                fm.castling = '-';// ban castling
+                if (moves.CanMove(fm))// if any of our figure can attack the enemy king
                 {
-                    FigureMoving fm = new FigureMoving(fs, enemyKing);
-                    if (moves.CanMove(fm))// if any of our figure can attack enemy king
-                    {
-                        return true;
-                    }
+                    return true;
                 }
             }
             return false;
@@ -346,16 +344,10 @@ namespace ChessCore
 
         public bool IsOurKingInCheck()
         {
-            Board after = new Board(fen);
-            after.currentPlayerColor = currentPlayerColor.FlipPlayer();
+            Board afterBoard = new Board(fen);
+            afterBoard.currentPlayerColor = currentPlayerColor.FlipPlayer();
             // now we can work with enemy figures
-            return after.IsEnemyKingUnderAttack();
-        }
-
-        public bool IsOurKingInCheckAfterMove(FigureMoving fm)
-        {
-            Board after = Move(fm);
-            return after.IsEnemyKingUnderAttack();
+            return afterBoard.IsEnemyKingUnderAttack();
         }
     }
 }

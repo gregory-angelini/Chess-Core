@@ -21,7 +21,14 @@ namespace ChessCore
 
             return CanMoveFrom() &&
                    CanMoveTo() &&
-                   CanFigureMove();
+                   CanFigureMove() &&
+                   !IsOurKingInCheckAfterMove(fm);
+        }
+
+        bool IsOurKingInCheckAfterMove(FigureMoving fm)
+        {
+            Board afterBoard = board.Move(fm);
+            return afterBoard.IsEnemyKingUnderAttack();
         }
 
         bool CanMoveFrom()
@@ -38,7 +45,7 @@ namespace ChessCore
                    board.FigureAt(fm.to).GetColor() != board.currentPlayerColor;//covers a case when we're going on empty square
         }
 
-        bool CanKingCastlingKingside()
+        bool CanCastling()
         {
             /* kingside
                 white case
@@ -63,7 +70,7 @@ namespace ChessCore
             // 3. The king is not in check
             // 4. The king does not cross over a square that is attacked by the opponent's pieces
             // 5. The castling move cannot end with the king in check
-            if (!board.IsOurKingInCheck())   
+            if (!board.IsOurKingInCheck()) 
             { 
                 return IsCastlingAllowed();
             }
@@ -110,8 +117,8 @@ namespace ChessCore
                 FigureMoving fm1 = new FigureMoving(new FigureOnSquare(fm.figure, fm.from), nearSquare);
                 FigureMoving fm2 = new FigureMoving(new FigureOnSquare(fm.figure, fm.from), farSquare);
 
-                if (!board.IsOurKingInCheckAfterMove(fm1) &&
-                    !board.IsOurKingInCheckAfterMove(fm2))
+                if (!IsOurKingInCheckAfterMove(fm1) &&
+                    !IsOurKingInCheckAfterMove(fm2))
                 {
                     return true;
                 }
@@ -241,7 +248,7 @@ namespace ChessCore
         {
             if (fm.AbsDeltaX <= 1 && fm.AbsDeltaY <= 1) 
                 return true;
-            return CanKingCastlingKingside();
+            return fm.castling != '-' ? CanCastling() : false;
         }
 
         // The Queen moves in a straight line - either vertically, horizontally or diagonally
