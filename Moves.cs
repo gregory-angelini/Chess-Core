@@ -35,14 +35,14 @@ namespace ChessCore
         {
             return fm.from.OnBoard() &&
                    board.FigureAt(new Square(fm.from.x, fm.from.y)) == fm.figure &&
-                   fm.figure.GetColor() == board.currentPlayerColor;// we can only move our figures 
+                   fm.figure.GetColor() == board.moveColor;// we can only move our figures 
         }
 
         bool CanMoveTo()
         {
             return fm.from.OnBoard() &&
                    fm.from != fm.to && 
-                   board.FigureAt(fm.to).GetColor() != board.currentPlayerColor;//covers a case when we're going on empty square
+                   board.FigureAt(fm.to).GetColor() != board.moveColor;//covers a case when we're going on empty square
         }
 
         bool CanCastling()
@@ -79,8 +79,8 @@ namespace ChessCore
 
         bool IsCastlingAllowed()
         {
-            bool isKingsideCastlingAllowed = board.currentPlayerColor == Color.white ? board.wKingsideCastling : board.bKingsideCastling;
-            bool isQueensideCastlingAllowed = board.currentPlayerColor == Color.white ? board.wQueensideCastling : board.bQueensideCastling;
+            bool isKingsideCastlingAllowed = board.moveColor == Color.white ? board.wKingsideCastling : board.bKingsideCastling;
+            bool isQueensideCastlingAllowed = board.moveColor == Color.white ? board.wQueensideCastling : board.bQueensideCastling;
 
             if (fm.AbsDeltaX == 2 && fm.AbsDeltaY == 0)
             {
@@ -89,7 +89,7 @@ namespace ChessCore
                 {
                     if (IsWayIsSafe(fm.SignDeltaX))
                     {
-                        fm.castling = board.currentPlayerColor == Color.white ? 'K' : 'k';
+                        fm.castling = board.moveColor == Color.white ? 'K' : 'k';
                         return true;
                     }
                 }
@@ -98,7 +98,7 @@ namespace ChessCore
                 {
                     if (IsWayIsSafe(fm.SignDeltaX))
                     {
-                        fm.castling = board.currentPlayerColor == Color.white ? 'Q' : 'q';
+                        fm.castling = board.moveColor == Color.white ? 'Q' : 'q';
                         return true;
                     }
                 }
@@ -186,9 +186,9 @@ namespace ChessCore
              * 3. The first pawn can be captured as if it moved only one square
              * 4. The capture can only be made at the opponent's next move. If the capture is not made, the first pawn is safe from en passant capture for the remainder of the game */
              
-            if (board.EnPassant.Length == 2)
+            if (board.enPassant.Length == 2)
             {
-                Square midSquare = new Square(board.EnPassant);
+                Square midSquare = new Square(board.enPassant);
             
                 if(midSquare == fm.to &&
                   (board.FigureAt(fm.to) == Figure.none) &&

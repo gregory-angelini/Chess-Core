@@ -14,17 +14,16 @@ namespace ChessCore
         // note: if there's no en passant target square, this is "-". If a pawn has just made a two-square move, this is the position "behind" the pawn. This is recorded regardless of whether there is a pawn in position to make an en passant capture
         // note: number of halfmoves since the last capture or pawn advance. This is used to determine if a draw can be claimed under the fifty-move rule
         // note: the number of the full move. It starts at 1, and is incremented after Black's move
-        public string fen { get; private set; }// current game state in fen notation
+        public string fen { get => board.fen; }// current game state in fen notation
         Board board;
         Moves moves;
 
-        bool curPlayerInCheck = false;
-        bool curPlayerInCheckmate = false;
-        bool curPlayerInStalemate = false;
+        bool currentPlayerInCheck = false;
+        bool currentPlayerInCheckmate = false;
+        bool currentPlayerInStalemate = false;
 
         public Chess(string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")// start of game
         {
-            this.fen = fen;
             board = new Board(fen);
             moves = new Moves(board);
         }
@@ -32,7 +31,6 @@ namespace ChessCore
         Chess(Board board)
         {
             this.board = board;
-            fen = board.fen;
             moves = new Moves(board);
         }
 
@@ -95,7 +93,7 @@ namespace ChessCore
         {  
             if (board.IsOurKingInCheck())
             {
-                curPlayerInCheck = true;
+                currentPlayerInCheck = true;
 
                 foreach (FigureOnSquare fs in board.YieldFigures())
                 {
@@ -110,13 +108,13 @@ namespace ChessCore
                         }
                     }
                 }
-                curPlayerInCheckmate = true;
+                currentPlayerInCheckmate = true;
             }
             else
             {
                 if (FindAllMoves().Count == 0)
                 {
-                    curPlayerInStalemate = true;
+                    currentPlayerInStalemate = true;
                 }
             }
         }
@@ -143,25 +141,25 @@ namespace ChessCore
 
         public bool IsCheckmate()
         {
-            return curPlayerInCheckmate;
+            return currentPlayerInCheckmate;
         }
 
         public bool IsCheck()
         {
-            return curPlayerInCheck;
+            return currentPlayerInCheck;
         }
 
         public bool IsStalemate()
         {
-            return curPlayerInStalemate;
+            return currentPlayerInStalemate;
         }
 
         public bool IsEnPassant(out int x, out int y)
         {
-            Square midSquare = new Square(board.EnPassant);
+            Square midSquare = new Square(board.enPassant);
             x = midSquare.x;
             y = midSquare.y;
-            return board.EnPassant.Length > 0;
+            return board.enPassant.Length > 0;
         }
 
         public static string SquarePosToSquareName(int x, int y)
@@ -176,10 +174,9 @@ namespace ChessCore
             y = square.y;
         }
 
-        // who has a turn?
-        public Color GetCurrentPlayerColor()
+        public Color GetMoveColor()
         {
-            return board.currentPlayerColor;
+            return board.moveColor;
         }
 
         public static Color GetFigureColor(Figure figure)

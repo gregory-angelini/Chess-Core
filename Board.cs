@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Dynamic;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace ChessCore
@@ -9,10 +10,11 @@ namespace ChessCore
     {
         public string fen { get; private set; }
         Figure[,] figures;// array of all figures
-        public string EnPassant { get; private set; } = "";
+        public string enPassant { get; private set; } = "";
 
-        public Color currentPlayerColor { get; private set; }// who has a turn?
-        public int moveNumber { get; private set; }// increases after black had a first turn
+        public Color moveColor { get; private set; }// who has a turn?
+        public int moveNumber { get; private set; }// increases after black did a first move
+        public int drawNumber { get; private set; } // increases after we move a non-pawn figure or do not attack enemy figure; when we get 50 the game is draw
         public bool wKingsideCastling { get; set; } = false;
         public bool wQueensideCastling { get; set; } = false;
         public bool bKingsideCastling { get; set; } = false;
@@ -36,22 +38,36 @@ namespace ChessCore
             if (parts.Length != 6) return;
 
             InitFigures(parts[0]);
-            currentPlayerColor = parts[1] == "b" ? Color.black : Color.white;
-             
-            ParseKingCastling(parts[2]);
-            UpdateCastling();
+            InitColor(parts[1]);
+            InitCastling(parts[2]);
+            //UpdateCastling(); 
             
-            ParseEnPassant(parts[3]);
-
-            moveNumber = int.Parse(parts[5]);
+            InitEnPassant(parts[3]);
+            InitDrawNumber(parts[4]);
+            InitMoveNumber(parts[5]);
         }
 
-        void ParseEnPassant(string text)
+        void InitDrawNumber(string number)
         {
-            EnPassant = text;
+            drawNumber = int.Parse(number);
         }
 
-        void ParseKingCastling(string text)
+        void InitMoveNumber(string text)
+        {
+            moveNumber = int.Parse(text);
+        }
+
+        void InitColor(string text)
+        {
+            moveColor = text == "b" ? Color.black : Color.white;
+        }
+
+        void InitEnPassant(string text)
+        {
+            enPassant = text;
+        }
+
+        void InitCastling(string text)
         {
             foreach (char it in text)
             {
@@ -91,7 +107,7 @@ namespace ChessCore
             {
                 data = data.Replace(j.ToString(), (j - 1).ToString() + "1");
             }
-            data = data.Replace("1", ".");
+            data = data.Replace('1', (char)Figure.none);
 
             string[] lines = data.Split('/');
 
@@ -100,7 +116,7 @@ namespace ChessCore
             {
                 for(int x = 0; x < 8; x++)
                 {
-                    figures[x, 7 - y] = lines[y][x] == '.' ? Figure.none : (Figure)lines[y][x];
+                    figures[x, 7 - y] = (Figure)lines[y][x];
                 }
             }
         }
@@ -125,14 +141,42 @@ namespace ChessCore
         void GenerateFen()
         {
             fen = FenFigures() + " " +
-                 (currentPlayerColor == Color.white ? "w" : "b") + " " +
-                 (wKingsideCastling ? "K" : "") + 
-                 (wQueensideCastling ? "Q" : "") + 
-                 (bKingsideCastling ? "k" : "") + 
-                 (bQueensideCastling ? "q" : "") + 
-                  " " + EnPassant + " " +
-                  "0" + " " + // ignored information
-                  moveNumber.ToString();
+                  FenMoveColor() + " " +
+                  FenCastling() + " " + 
+                  FenEnPassant() + " " +
+                  FenDrawNumber() + " " +
+                  FenMoveNumber();
+        }
+
+        string FenMoveNumber()
+        {
+            return moveNumber.ToString();
+        }
+
+        string FenDrawNumber()
+        {
+            return drawNumber.ToString();
+        }
+
+        string FenEnPassant()
+        {
+            return enPassant;
+        }
+
+        string FenCastling()
+        {
+            string flags = 
+            (wKingsideCastling ? "K" : "") +
+            (wQueensideCastling ? "Q" : "") +
+            (bKingsideCastling ? "k" : "") +
+            (bQueensideCastling ? "q" : "");
+
+            return flags == "" ? "-" : flags;
+        }
+
+        string FenMoveColor()
+        {
+            return moveColor == Color.white ? "w" : "b";
         }
 
         string FenFigures()
@@ -145,7 +189,9 @@ namespace ChessCore
                 {
                     sb.Append(figures[x, y] == Figure.none ? '1' : (char)figures[x, y]);
                 }
-                if(y > 0) sb.Append('/');
+
+                if(y > 0) 
+                    sb.Append('/');
             }
 
             // convert back to FEN notation
@@ -158,13 +204,12 @@ namespace ChessCore
             return sb.ToString();
         }
 
-  
         public IEnumerable<FigureOnSquare> YieldFigures()
         {
             foreach (Square square in Square.YieldSquares())
             {
                 Figure figure = FigureAt(square);
-                if (figure.GetColor() == currentPlayerColor)
+                if (figure.GetColor() == moveColor)
                 {
                     yield return new FigureOnSquare(figure, square);
                 }
@@ -180,22 +225,22 @@ namespace ChessCore
             nextBoard.MakeEnPassantAttack(fm);
             nextBoard.MakeCastling(fm); 
 
-            if (currentPlayerColor == Color.black)
+            if (moveColor == Color.black)
                 nextBoard.moveNumber++;
 
             nextBoard.UpdateEnPassant(fm);
             nextBoard.UpdateCastlingAfterMove(fm);
-            nextBoard.UpdateCastling();
+            //nextBoard.UpdateCastling(); 
 
-            nextBoard.currentPlayerColor = currentPlayerColor.FlipPlayer();// end turn
+            nextBoard.moveColor = moveColor.FlipColor();// end of the move
 
-            nextBoard.GenerateFen();//apply the turn to current board state
+            nextBoard.GenerateFen();//apply the move to current board state
             return nextBoard;
         }
 
         void MakeEnPassantAttack(FigureMoving fm)
         {
-            Square midSquare = new Square(EnPassant);
+            Square midSquare = new Square(enPassant);
             
             if (fm.to == midSquare)// en passant
             {
@@ -211,10 +256,10 @@ namespace ChessCore
                 {
                     int y = fm.to.y - fm.SignDeltaY;
                     Square midSquare = new Square(fm.to.x, y);
-                    EnPassant = midSquare.ToString();
+                    enPassant = midSquare.ToString();
                 }
             }
-            EnPassant = "-";// en passant only has power during one move
+            enPassant = "-";// en passant only has power during one move
         }
 
         void MakeCastling(FigureMoving fm)
@@ -234,28 +279,30 @@ namespace ChessCore
         void UpdateCastlingAfterMove(FigureMoving fm)
         {
             // we move our king or rook
-            Figure king = currentPlayerColor == Color.white ? Figure.whiteKing : Figure.blackKing;
-            Figure rook = currentPlayerColor == Color.white ? Figure.whiteRook : Figure.blackRook;
+            Figure king = moveColor == Color.white ? Figure.whiteKing : Figure.blackKing;
+            Figure rook = moveColor == Color.white ? Figure.whiteRook : Figure.blackRook;
 
             if (fm.figure == king)
             {
-                DisableQueensideCastling(currentPlayerColor);
-                DisableKingsideCastling(currentPlayerColor);
+                DisableQueensideCastling(moveColor);
+                DisableKingsideCastling(moveColor);
             }
             else if(fm.figure == rook)
             {
                 if(fm.from.x == 0)
                 {
-                    DisableQueensideCastling(currentPlayerColor);
+                    DisableQueensideCastling(moveColor);
                 } 
                 else if(fm.from.x == 7)
                 {
-                    DisableKingsideCastling(currentPlayerColor);
+                    DisableKingsideCastling(moveColor);
                 }
             }
         }
+        
+        /*
         void UpdateCastling()
-        {
+        { 
             if (FigureAt(new Square(4, 0)) != Figure.whiteKing)
             {
                 DisableKingsideCastling(Color.white);
@@ -285,7 +332,7 @@ namespace ChessCore
             {
                 DisableKingsideCastling(Color.black);
             }
-        }
+        }*/
             
         void DisableKingsideCastling(Color color)
         {
@@ -330,7 +377,7 @@ namespace ChessCore
 
         Square FindEnemyKing()
         {
-            Figure enemyKing = currentPlayerColor == Color.black ? Figure.whiteKing : Figure.blackKing;
+            Figure enemyKing = moveColor == Color.black ? Figure.whiteKing : Figure.blackKing;
             
             foreach(Square square in Square.YieldSquares())
             {
@@ -345,7 +392,7 @@ namespace ChessCore
         public bool IsOurKingInCheck()
         {
             Board afterBoard = new Board(fen);
-            afterBoard.currentPlayerColor = currentPlayerColor.FlipPlayer();
+            afterBoard.moveColor = moveColor.FlipColor();
             // now we can work with enemy figures
             return afterBoard.IsEnemyKingUnderAttack();
         }
