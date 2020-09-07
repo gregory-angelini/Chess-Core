@@ -10,7 +10,6 @@ namespace ChessCore
         public Square from { get; private set; }
         public Square to { get; private set; }
         public Figure promotion { get; private set; }
-        public char castling { get; set; } = ' ';
 
         public FigureMoving(FigureOnSquare fs, Square to, Figure promotion = Figure.none)
         {
@@ -45,12 +44,10 @@ namespace ChessCore
 
         public override string ToString()
         {
-            string text = (char)figure + Square.GetName(from.x, from.y) + Square.GetName(to.x, to.y);
-
-            if (promotion != Figure.none)
-                text += (char)promotion;
-
-            return text;
+            return ((char)figure).ToString() + 
+                   from.ToString() + 
+                   to.ToString() +
+                   (promotion == Figure.none ? "" : ((char)promotion).ToString());
         }
     }
 }

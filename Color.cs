@@ -10,6 +10,7 @@ namespace ChessCore
         white,
         black
     }
+
     static class ColorMethods
     {
         public static Color FlipColor(this Color color)

@@ -10,7 +10,7 @@ namespace ChessCore
         // note: each rank is described, starting with rank 8 and ending with rank 1; within each rank, the contents of each square are described from file "a" through file "h"
         // note: white figures are designated using upper-case letters ("PNBRQK") while black figures use lowercase ("pnbrqk"). Empty squares are noted using digits 1 through 8 (the number of empty squares), and "/" separates ranks
         // note: "w" means White moves next, "b" means Black moves next
-        // note: if neither side can castle, this is "-". Otherwise, this has one or more letters: "K" (White can castle kingside), "Q" (White can castle queenside), "k" (Black can castle kingside), and/or "q" (Black can castle queenside). A move that temporarily prevents castling does not negate this notation
+        // note: if neither side can castle, this is "-". Otherwise, this has one or more letters: "K" (White can castle kingside), "Q" (White can castle queenside), "k" (Black can castle kingside), and/or "q" (Black can castle queenside). A move that temporarily prevents castle does not negate this notation
         // note: if there's no en passant target square, this is "-". If a pawn has just made a two-square move, this is the position "behind" the pawn. This is recorded regardless of whether there is a pawn in position to make an en passant capture
         // note: number of halfmoves since the last capture or pawn advance. This is used to determine if a draw can be claimed under the fifty-move rule
         // note: the number of the full move. It starts at 1, and is incremented after Black's move
@@ -18,9 +18,9 @@ namespace ChessCore
         Board board;
         Moves moves;
 
-        bool currentPlayerInCheck = false;
-        bool currentPlayerInCheckmate = false;
-        bool currentPlayerInStalemate = false;
+        bool isCheck = false;
+        bool isCheckmate = false;
+        bool isStalemate = false;
 
         public Chess(string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")// start of game
         {
@@ -42,10 +42,13 @@ namespace ChessCore
             
             if(!moves.CanMove(fm))
                 return this;
-            
+
+            if(board.IsCheckAfterMove(fm))
+                return this;
+
             Board nextBoard = board.Move(fm);
             Chess nextChess = new Chess(nextBoard);
-            nextChess.UpdateKingStatus();
+            nextChess.UpdateGameStatus(); 
             return nextChess;
         }
 
@@ -61,7 +64,7 @@ namespace ChessCore
             List<string> list = new List<string>();
 
             foreach (FigureMoving fm in allMoves)
-                list.Add(fm.ToString());
+                list.Add(fm.ToString()); 
                 
             return list;
         }
@@ -82,42 +85,47 @@ namespace ChessCore
             FigureOnSquare fs = new FigureOnSquare(figure, from);
             FigureMoving fm = new FigureMoving(fs, to);
            
-            if (moves.CanMove(fm))
+            if (moves.CanMove(fm) &&
+                !board.IsCheckAfterMove(fm))
             {
                 return true;
             }
             return false;
         }
 
-        void UpdateKingStatus()
+
+        void UpdateGameStatus()
         {  
-            if (board.IsOurKingInCheck())
+            if (board.IsCheck())
             {
-                currentPlayerInCheck = true;
+                isCheck = true;
 
                 foreach (FigureOnSquare fs in board.YieldFigures())
-                {
+                { 
                     foreach (Square to in Square.YieldSquares())
                     {
                         FigureMoving fm = new FigureMoving(fs, to);
                        
-                        if (moves.CanMove(fm))
+                        if (moves.CanMove(fm) &&
+                            !board.IsCheckAfterMove(fm))
                         {
-                            // we have a move to avoid checkmate
+                            // we can move to avoid checkmate
                             return;
                         }
                     }
                 }
-                currentPlayerInCheckmate = true;
+                isCheck = false;
+                isCheckmate = true;
             }
             else
             {
                 if (FindAllMoves().Count == 0)
                 {
-                    currentPlayerInStalemate = true;
+                    isStalemate = true;
                 }
             }
         }
+
 
         List<FigureMoving> FindAllMoves()
         {
@@ -130,8 +138,9 @@ namespace ChessCore
                 {
                     fm = new FigureMoving(fs, to);
                    
-                    if (moves.CanMove(fm))
-                    {
+                    if (moves.CanMove(fm) && 
+                        !board.IsCheckAfterMove(fm))
+                    { 
                         allMoves.Add(fm);
                     }
                 }
@@ -141,25 +150,22 @@ namespace ChessCore
 
         public bool IsCheckmate()
         {
-            return currentPlayerInCheckmate;
+            return isCheckmate;
         }
 
         public bool IsCheck()
         {
-            return currentPlayerInCheck;
+            return isCheck;
         }
 
         public bool IsStalemate()
         {
-            return currentPlayerInStalemate;
+            return isStalemate;
         }
 
-        public bool IsEnPassant(out int x, out int y)
+        public string GetEnPassant()
         {
-            Square midSquare = new Square(board.enPassant);
-            x = midSquare.x;
-            y = midSquare.y;
-            return board.enPassant.Length > 0;
+            return board.enPassant;
         }
 
         public static string SquarePosToSquareName(int x, int y)

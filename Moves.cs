@@ -16,19 +16,12 @@ namespace ChessCore
         }
 
         public bool CanMove(FigureMoving fm)
-        {
+        { 
             this.fm = fm;
 
             return CanMoveFrom() &&
                    CanMoveTo() &&
-                   CanFigureMove() &&
-                   !IsOurKingInCheckAfterMove(fm);
-        }
-
-        bool IsOurKingInCheckAfterMove(FigureMoving fm)
-        {
-            Board afterBoard = board.Move(fm);
-            return afterBoard.IsEnemyKingUnderAttack();
+                   CanFigureMove();
         }
 
         bool CanMoveFrom()
@@ -45,7 +38,8 @@ namespace ChessCore
                    board.FigureAt(fm.to).GetColor() != board.moveColor;//covers a case when we're going on empty square
         }
 
-        bool CanCastling()
+
+        bool CanKingCastle()
         {
             /* kingside
                 white case
@@ -69,36 +63,33 @@ namespace ChessCore
             // 2. There are no pieces between the king and the rook
             // 3. The king is not in check
             // 4. The king does not cross over a square that is attacked by the opponent's pieces
-            // 5. The castling move cannot end with the king in check
-            if (!board.IsOurKingInCheck()) 
-            { 
-                return IsCastlingAllowed();
-            }
-            return false;
-        }
-
-        bool IsCastlingAllowed()
-        {
-            bool isKingsideCastlingAllowed = board.moveColor == Color.white ? board.wKingsideCastling : board.bKingsideCastling;
-            bool isQueensideCastlingAllowed = board.moveColor == Color.white ? board.wQueensideCastling : board.bQueensideCastling;
+            // 5. The castle move cannot end with the king in check
 
             if (fm.AbsDeltaX == 2 && fm.AbsDeltaY == 0)
             {
+                bool isKingsideCastleAllowed = board.moveColor == Color.white ? board.wKingsideCastle : board.bKingsideCastle;
+                bool isQueensideCastleAllowed = board.moveColor == Color.white ? board.wQueensideCastle : board.bQueensideCastle;
+                Figure rightRook = board.FigureAt(new Square(7, fm.from.y));
+                Figure leftRook = board.FigureAt(new Square(0, fm.from.y));
+
                 if (fm.SignDeltaX == 1 && // short; move right
-                    isKingsideCastlingAllowed)
-                {
-                    if (IsWayIsSafe(fm.SignDeltaX))
+                    isKingsideCastleAllowed &&
+                    (rightRook == Figure.blackRook || rightRook == Figure.whiteRook) &&
+                    fm.figure.GetColor() == rightRook.GetColor())
+                { 
+                    if (!board.IsCheck() && !IsCheckAfterMoves(fm.SignDeltaX, 2))
                     {
-                        fm.castling = board.moveColor == Color.white ? 'K' : 'k';
                         return true;
                     }
                 }
                 else if (fm.SignDeltaX == -1 &&// long; move left
-                         isQueensideCastlingAllowed)
+                         isQueensideCastleAllowed &&
+                         (leftRook == Figure.blackRook || leftRook == Figure.whiteRook) &&
+                         fm.figure.GetColor() == leftRook.GetColor())
                 {
-                    if (IsWayIsSafe(fm.SignDeltaX))
+                    if (!board.IsCheck() && !IsCheckAfterMoves(fm.SignDeltaX, 2) && 
+                        board.FigureAt(new Square(fm.from.x + fm.SignDeltaX * 3, fm.from.y)) == Figure.none)
                     {
-                        fm.castling = board.moveColor == Color.white ? 'Q' : 'q';
                         return true;
                     }
                 }
@@ -106,25 +97,25 @@ namespace ChessCore
             return false;
         }
 
-        bool IsWayIsSafe(int offset)
-        {
-            Square nearSquare = new Square(fm.from.x + offset, fm.from.y);
-            Square farSquare = new Square(fm.from.x + (offset * 2), fm.from.y);
+        bool IsCheckAfterMoves(int dir, int dist)
+        { 
+            int result = 0;
 
-            if (board.FigureAt(nearSquare) == Figure.none &&
-                board.FigureAt(farSquare) == Figure.none)
-             {
-                FigureMoving fm1 = new FigureMoving(new FigureOnSquare(fm.figure, fm.from), nearSquare);
-                FigureMoving fm2 = new FigureMoving(new FigureOnSquare(fm.figure, fm.from), farSquare);
+            for (int i = 1; i <= dist; i++)
+            {
+                Square square = new Square(fm.from.x + dir * i, fm.from.y);
 
-                if (!IsOurKingInCheckAfterMove(fm1) &&
-                    !IsOurKingInCheckAfterMove(fm2))
+                if (board.FigureAt(square) == Figure.none)
                 {
-                    return true;
+                    if (!board.IsCheckAfterMove(new FigureMoving(new FigureOnSquare(fm.figure, fm.from), square)))
+                    {
+                        result++;
+                    }
                 }
             }
-            return false;
-        } 
+            return !(result == dist);
+        }
+
 
         bool CanFigureMove()
         {
@@ -165,8 +156,8 @@ namespace ChessCore
 
             int stepY = fm.figure.GetColor() == Color.white ? 1 : -1;// pawn can move up or down depends on color
 
-            return CanPawnGo(stepY) ||
-                   CanPawnJump(stepY) ||
+            return CanPawnGo(stepY) ||// +1
+                   CanPawnJump(stepY) ||// +2
                    CanPawnAttack(stepY);
         }
 
@@ -185,17 +176,15 @@ namespace ChessCore
              * 2. An opposing pawn must be attacking the square the first pawn moved over
              * 3. The first pawn can be captured as if it moved only one square
              * 4. The capture can only be made at the opponent's next move. If the capture is not made, the first pawn is safe from en passant capture for the remainder of the game */
-             
-            if (board.enPassant.Length == 2)
-            {
-                Square midSquare = new Square(board.enPassant);
+
+            Square midSquare = new Square(board.enPassant);
             
-                if(midSquare == fm.to &&
-                  (board.FigureAt(fm.to) == Figure.none) &&
-                  (fm.AbsDeltaX == 1) &&
-                  (fm.DeltaY == stepY))
-                    return true;
-            }
+            if(midSquare == fm.to &&
+                (board.FigureAt(fm.to) == Figure.none) &&
+                (fm.AbsDeltaX == 1) &&
+                (fm.DeltaY == stepY))
+                return true;
+      
             return false;
         }
 
@@ -243,12 +232,12 @@ namespace ChessCore
                     CanStraightMove();
         }
 
-        // The king can move to any adjacent square
+        // The King can move to any adjacent square
         bool CanKingMove()
         {
             if (fm.AbsDeltaX <= 1 && fm.AbsDeltaY <= 1) 
                 return true;
-            return fm.castling != '-' ? CanCastling() : false;
+            return CanKingCastle();
         }
 
         // The Queen moves in a straight line - either vertically, horizontally or diagonally
@@ -259,7 +248,8 @@ namespace ChessCore
             {
                 at = new Square(at.x + fm.SignDeltaX, at.y + fm.SignDeltaY);
 
-                if (at == fm.to) return true;// covers a case when we're killing enemy's figure
+                if (at == fm.to) // covers a case when we're killing enemy's figure
+                    return true;
             } 
             while (at.OnBoard() &&
                    board.FigureAt(at) == Figure.none);
