@@ -26,12 +26,14 @@ namespace ChessCore
         {
             board = new Board(fen);
             moves = new Moves(board);
+            UpdateGameStatus();
         }
         
         Chess(Board board)
         {
             this.board = board;
             moves = new Moves(board);
+            UpdateGameStatus();
         }
 
         // moves a figure
